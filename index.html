@@ -554,6 +554,12 @@
   });
   document.getElementById('prevBtn').disabled = true;
 
+  // Anyone opening the page via the poll's QR code (#vote) lands straight on the
+  // poll slide instead of the intro — voters shouldn't have to click through.
+  if (window.location.hash === '#vote') {
+    goTo(1);
+  }
+
   /* ---------------- Reveal count-up (runs once) ---------------- */
   let revealed = false;
   function animateNumber(el, to, decimals, duration) {
@@ -596,7 +602,7 @@
 
   const optionsEl = document.getElementById('options');
   const resultsEl = document.getElementById('results');
-  const VOTED_KEY = "votedLiveInterview";
+  const VOTED_KEY = "votedLiveFinal";
   let votesRef = null; // set later if Firebase connects successfully
 
   OPTIONS.forEach(o => {
@@ -639,7 +645,7 @@
 
   try {
     new QRCode(document.getElementById('qrcode'), {
-      text: window.location.href,
+      text: window.location.origin + window.location.pathname + '#vote',
       width: 128,
       height: 128,
       colorDark: "#0B1F33",
@@ -663,7 +669,7 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    votesRef = db.ref("polls/liveInterview/votes");
+    votesRef = db.ref("polls/liveFinal/votes");
 
     votesRef.on('value', (snapshot) => {
       const val = snapshot.val() || {};
