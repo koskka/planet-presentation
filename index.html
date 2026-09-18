@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Why Most Onboarding Fails</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0B1F33;
+    --cyan: #009DA5;
+    --cyan-deep: #007A80;
+    --cyan-bright: #4FD9E0;
+    --cream: #FAF7F0;
+    --ink: #111111;
+    --line: rgba(11,31,51,0.12);
+    --muted: rgba(11,31,51,0.58);
+    --dot-color: rgba(11,31,51,0.05);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+
+  body {
+    background: var(--cream);
+    color: var(--navy);
+    font-family: 'Inter', -apple-system, sans-serif;
+    overflow: hidden;
+  }
+
+  .deck {
+    position: relative;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    padding: 8vh 9vw 12vh;
+    opacity: 0;
+    background-color: var(--cream);
+  }
+
+  .slide.active {
+    display: flex;
+    opacity: 1;
+  }
+
+  .slide::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(var(--dot-color) 1px, transparent 1.6px);
+    background-size: 26px 26px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .slide.dark {
+    --muted: rgba(250,247,240,0.62);
+    --line: rgba(250,247,240,0.18);
+    --dot-color: rgba(250,247,240,0.07);
+    background-color: var(--navy);
+    color: var(--cream);
+  }
+  .slide.dark .stat { color: var(--cyan-bright); }
+  .slide.dark .ttv-track { background: rgba(250,247,240,0.15); }
+  .slide.dark .ttv-fill { background: var(--cyan-bright); }
+  .slide.dark .ttv-point .dot { background: var(--cream); }
+  .slide.dark .ttv-point.end .dot { background: var(--cyan-bright); }
+
+  .content {
+    max-width: 760px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .content.wide { max-width: 980px; }
+
+  h1, h2, h3, h4 {
+    font-family: 'Space Grotesk', sans-serif;
+    margin: 0;
+    line-height: 1.08;
+    letter-spacing: -0.01em;
+  }
+
+  h1 { font-size: clamp(2rem, 4.4vw, 3.2rem); font-weight: 600; }
+  h2 { font-size: clamp(1.5rem, 3vw, 2.1rem); font-weight: 600; }
+
+  p { line-height: 1.55; font-size: 1.05rem; margin: 0 0 0.9em; }
+  p:last-child { margin-bottom: 0; }
+
+  .lede {
+    font-size: clamp(1.1rem, 1.6vw, 1.3rem);
+    color: var(--navy);
+    max-width: 34ch;
+  }
+
+  .muted { color: var(--muted); font-size: 0.9rem; }
+
+  /* ---------- Slide: Intro ---------- */
+
+  .intro-content p.muted { font-size: 0.95rem; }
+
+  /* ---------- Slide: Hook + Poll ---------- */
+
+  .poll-block {
+    margin-top: 2.2rem;
+    display: flex;
+    gap: 3rem;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .poll-main { flex: 1 1 420px; min-width: 280px; }
+
+  .poll-question {
+    font-size: 1.05rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+  }
+
+  .options {
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  button.opt {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    text-align: left;
+    padding: 0.85rem 1.1rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.98rem;
+    color: var(--navy);
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  button.opt:hover { border-color: var(--cyan); }
+  button.opt:disabled { cursor: default; opacity: 0.55; }
+  button.opt .letter {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    color: var(--cyan-deep);
+    width: 1.2em;
+  }
+
+  .results { margin-top: 1.4rem; display: grid; gap: 0.55rem; }
+  .result-row { display: grid; grid-template-columns: 1.6rem 1fr 3.2rem; align-items: center; gap: 0.7rem; }
+  .result-label { font-size: 0.85rem; color: var(--muted); }
+  .bar-track { height: 10px; background: rgba(11,31,51,0.08); border-radius: 2px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--cyan); width: 0%; transition: width 0.5s ease; }
+  .result-count { font-size: 0.82rem; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+
+  .qr-side {
+    flex: 0 0 160px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  #qrcode { background: #fff; padding: 10px; border-radius: 4px; line-height: 0; }
+  .qr-caption { font-size: 0.78rem; color: var(--muted); text-align: center; max-width: 12ch; }
+
+  /* ---------- Slide: Reveal ---------- */
+
+  .stat-row { display: flex; gap: 4.5rem; flex-wrap: wrap; margin: 1.6rem 0; }
+  .stat {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: clamp(3.2rem, 8vw, 5.2rem);
+    color: var(--cyan-deep);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .stat-label { font-size: 0.92rem; color: var(--muted); max-width: 22ch; margin-top: 0.5rem; }
+  .stat-label sup { font-size: 0.75em; }
+
+  .def-row { display: flex; gap: 1.2rem; flex-wrap: wrap; margin: 1.7rem 0 1.4rem; }
+  .def-box {
+    flex: 1 1 240px;
+    padding: 0.9rem 1.1rem;
+    border-left: 2px solid var(--cyan-bright);
+    background: rgba(0,157,165,0.16);
+  }
+  .def-box h4 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--cyan-bright);
+    margin-bottom: 0.35rem;
+  }
+  .def-box p { font-size: 0.88rem; margin: 0; }
+
+  .mirror-line {
+    margin-top: 1.6rem;
+    font-size: 1.15rem;
+    font-weight: 500;
+    max-width: 40ch;
+  }
+
+  .corner-note {
+    position: absolute;
+    bottom: 5vh;
+    right: 9vw;
+    font-size: 0.72rem;
+    line-height: 1.4;
+    color: rgba(250,247,240,0.55);
+    max-width: 28ch;
+    text-align: right;
+    z-index: 1;
+    margin: 0;
+  }
+
+  /* ---------- Slides: Patterns (solo) ---------- */
+
+  .pattern-num {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 1.3rem;
+    color: var(--cyan-deep);
+    margin-bottom: 0.5rem;
+  }
+  .pattern-solo h2 { margin-bottom: 0.9rem; }
+  .pattern-solo p { font-size: 1.02rem; max-width: 58ch; }
+  .pattern-diagram { margin-top: 2.2rem; }
+
+  /* ---------- Slide: What works ---------- */
+
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; margin-top: 1.8rem; }
+  .compare-col { border-top: 3px solid; padding-top: 1rem; }
+  .compare-col.slack { border-color: #4A154B; }
+  .compare-col.duolingo { border-color: #58CC02; }
+  .compare-col img { height: 34px; width: auto; display: block; margin-bottom: 0.9rem; }
+  .compare-col h3 { font-size: 1.15rem; margin-bottom: 0.5rem; }
+  .compare-col p { font-size: 0.96rem; }
+
+  /* ---------- Slide: Closing ---------- */
+
+  .ttv-visual {
+    position: relative;
+    width: min(70vw, 640px);
+    height: 60px;
+    margin: 1rem 0 2.2rem;
+  }
+  .ttv-track {
+    position: absolute;
+    top: 28px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: rgba(11,31,51,0.1);
+    border-radius: 2px;
+  }
+  .ttv-fill {
+    position: absolute;
+    top: 28px;
+    left: 0;
+    height: 3px;
+    background: var(--cyan);
+    border-radius: 2px;
+    width: 88%;
+    transition: width 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .ttv-fill.compressed { width: 22%; }
+  .ttv-point {
+    position: absolute;
+    top: 0;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.92rem;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .ttv-point.start { left: 0; }
+  .ttv-point.end {
+    left: 88%;
+    transform: translateX(-100%);
+    transition: left 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .ttv-point.end.compressed { left: 22%; }
+  .ttv-point .dot {
+    display: block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--navy);
+    margin-top: 34px;
+  }
+  .ttv-point.end .dot { background: var(--cyan-deep); }
+
+  .ttv-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: clamp(2.4rem, 6vw, 4rem);
+    letter-spacing: -0.02em;
+  }
+
+  /* ---------- Nav ---------- */
+
+  .nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.1rem 2rem;
+    background: linear-gradient(to top, var(--cream) 60%, transparent);
+    font-family: 'Space Grotesk', sans-serif;
+    z-index: 5;
+  }
+  .nav-btn {
+    background: none;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    width: 2.4rem;
+    height: 2.4rem;
+    font-size: 1.1rem;
+    color: var(--navy);
+    cursor: pointer;
+  }
+  .nav-btn:hover { border-color: var(--cyan); color: var(--cyan-deep); }
+  .nav-btn:disabled { opacity: 0.3; cursor: default; }
+  .nav-count { font-size: 0.85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  body.dark-nav .nav { background: linear-gradient(to top, var(--navy) 60%, transparent); }
+  body.dark-nav .nav-btn { color: var(--cream); border-color: rgba(250,247,240,0.25); }
+  body.dark-nav .nav-btn:hover { border-color: var(--cyan-bright); color: var(--cyan-bright); }
+  body.dark-nav .nav-count { color: rgba(250,247,240,0.62); }
+
+  @media (max-width: 640px) {
+    .compare { grid-template-columns: 1fr; }
+    .stat-row { gap: 2rem; }
+    .poll-block { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<div class="deck">
+
+  <!-- SLIDE 0: Intro -->
+  <section class="slide active" data-index="0">
+    <div class="content intro-content">
+      <p class="muted">Final interview — Technical Customer Onboarding Specialist</p>
+      <h1>Caio Almeida</h1>
+      <p class="lede" style="margin-top:0.7rem;">Onboarding &amp; Activation</p>
+    </div>
+  </section>
+
+  <!-- SLIDE 1: Hook + Live Poll -->
+  <section class="slide" data-index="1">
+    <div class="content wide">
+      <h1>I want to start with a number.</h1>
+      <p class="lede">But instead of telling you, I want you to guess it.</p>
+      <div class="poll-block">
+        <div class="poll-main">
+          <p class="poll-question">Of the users who complete a SaaS onboarding flow, what percentage actually become active, retained users a few weeks later?</p>
+          <div class="options" id="options"></div>
+          <div class="results" id="results"></div>
+        </div>
+        <div class="qr-side">
+          <div id="qrcode"></div>
+          <p class="qr-caption">Scan to vote on your phone</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 2: The Reveal -->
+  <section class="slide dark" data-index="2">
+    <div class="content wide">
+      <h2>The metric mirror</h2>
+      <div class="stat-row">
+        <div>
+          <div class="stat" id="stat1">0%</div>
+          <div class="stat-label">average activation<sup>*</sup></div>
+        </div>
+        <div>
+          <div class="stat" id="stat2">0%</div>
+          <div class="stat-label">churned within two weeks<sup>*</sup></div>
+        </div>
+      </div>
+      <div class="def-row">
+        <div class="def-box">
+          <h4>Activation Rate</h4>
+          <p>The share of new users who reach a product's real value moment — not just sign up.</p>
+        </div>
+        <div class="def-box">
+          <h4>Completion Rate</h4>
+          <p>The share of users who finish the onboarding steps or checklist — whether or not they felt any value.</p>
+        </div>
+      </div>
+      <p class="mirror-line">Completion and what actually happens after are measuring two different realities.</p>
+    </div>
+    <p class="corner-note">* Two separate benchmarks (Userpilot, Amplitude) — different samples, not one funnel. Directional, not peer-reviewed.</p>
+  </section>
+
+  <!-- SLIDE 3: Pattern 1 -->
+  <section class="slide" data-index="3">
+    <div class="content wide pattern-solo">
+      <p class="muted" style="margin-bottom:0.4rem;">Three patterns, over and over</p>
+      <div class="pattern-num">01</div>
+      <h2>Measuring the tour, not the value</h2>
+      <p>A finished checklist is easy to track. A felt value moment is hard to define — so teams default to the easy metric.</p>
+      <div class="pattern-diagram">
+        <svg viewBox="0 0 320 120" width="100%" height="120" style="max-width:420px">
+          <line x1="40" y1="60" x2="230" y2="60" stroke="#009DA5" stroke-width="2" stroke-dasharray="4 4" opacity="0.35"/>
+          <circle cx="40" cy="60" r="20" fill="#009DA5"/>
+          <polyline points="32,60 38,66 50,52" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="115" cy="60" r="20" fill="#009DA5"/>
+          <polyline points="107,60 113,66 125,52" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="190" cy="60" r="20" fill="#009DA5"/>
+          <polyline points="182,60 188,66 200,52" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="278" cy="60" r="22" fill="none" stroke="#0B1F33" stroke-width="2" stroke-dasharray="5 5" opacity="0.4"/>
+          <path d="M278 47 L282 56 L292 57 L284 64 L286 74 L278 69 L270 74 L272 64 L264 57 L274 56 Z" fill="none" stroke="#0B1F33" stroke-width="1.5" opacity="0.45"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 4: Pattern 2 -->
+  <section class="slide" data-index="4">
+    <div class="content wide pattern-solo">
+      <p class="muted" style="margin-bottom:0.4rem;">Three patterns, over and over</p>
+      <div class="pattern-num">02</div>
+      <h2>Too many steps, too soon</h2>
+      <p>Completion drops from 72% at three steps to just 16% at seven (Chameleon, 2025 Benchmark Report). Every extra step is a chance to lose someone before they've felt any payoff.</p>
+      <div class="pattern-diagram">
+        <svg viewBox="0 0 320 130" width="100%" height="130" style="max-width:420px">
+          <rect x="20" y="41" width="36" height="65" fill="#009DA5"/>
+          <text x="38" y="32" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-size="13" fill="#0B1F33" font-weight="600">72%</text>
+          <rect x="76" y="56" width="36" height="50" fill="#009DA5" opacity="0.75"/>
+          <rect x="132" y="67" width="36" height="39" fill="#009DA5" opacity="0.6"/>
+          <rect x="188" y="80" width="36" height="26" fill="#009DA5" opacity="0.45"/>
+          <rect x="244" y="91" width="36" height="15" fill="#009DA5" opacity="0.35"/>
+          <text x="262" y="82" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-size="13" fill="#0B1F33" font-weight="600">16%</text>
+          <line x1="10" y1="106" x2="300" y2="106" stroke="#0B1F33" stroke-width="1" opacity="0.2"/>
+          <text x="38" y="120" text-anchor="middle" font-size="10" fill="#0B1F33" opacity="0.5">3 steps</text>
+          <text x="262" y="120" text-anchor="middle" font-size="10" fill="#0B1F33" opacity="0.5">7 steps</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 5: Pattern 3 -->
+  <section class="slide" data-index="5">
+    <div class="content wide pattern-solo">
+      <p class="muted" style="margin-bottom:0.4rem;">Three patterns, over and over</p>
+      <div class="pattern-num">03</div>
+      <h2>One-size-fits-all onboarding</h2>
+      <p>Enterprise products that build real personalization hit 12.4% day-seven activation, versus 2.1% for the median — nearly six times higher, just from not treating every user the same (Amplitude, 2025 Product Benchmark Report).</p>
+      <div class="pattern-diagram">
+        <svg viewBox="0 0 320 130" width="100%" height="130" style="max-width:420px">
+          <circle cx="30" cy="65" r="8" fill="#0B1F33"/>
+          <path d="M30 65 C 120 65, 160 25, 250 25" fill="none" stroke="#009DA5" stroke-width="2.5"/>
+          <path d="M30 65 C 120 65, 160 65, 250 65" fill="none" stroke="#009DA5" stroke-width="2.5" opacity="0.7"/>
+          <path d="M30 65 C 120 65, 160 105, 250 105" fill="none" stroke="#009DA5" stroke-width="2.5" opacity="0.45"/>
+          <circle cx="250" cy="25" r="9" fill="#009DA5"/>
+          <circle cx="250" cy="65" r="9" fill="#009DA5" opacity="0.7"/>
+          <circle cx="250" cy="105" r="9" fill="#009DA5" opacity="0.45"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 6: What works -->
+  <section class="slide" data-index="6">
+    <div class="content wide">
+      <h2>What great onboarding looks like</h2>
+      <p class="lede">Same thread every time: one clear "aha moment," reached as fast as possible.</p>
+      <div class="compare">
+        <div class="compare-col slack">
+          <img src="data:image/webp;base64,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" alt="Slack logo">
+          <h3>Slack</h3>
+          <p>The aha moment isn't signing up — it's receiving your first real message from a teammate. Everything before that is just friction to minimize.</p>
+        </div>
+        <div class="compare-col duolingo">
+          <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUAAAAFACAMAAAD6TlWYAAAC/VBMVEVHcExPxwBPxwBPxwBPxwBPxwBPxwBPxwBPxwBPxwBPxwBPxwBPyABQyABPxwBPxwBPxwBPxwBPxwBPxwBPyABPxwBPxwBPxwBQxwBOyABPxwBPxwBPxwBPxwBPxwBOxwBNyABPxwBPxwBPxwBPxwBPxwBPxwBPxwBPyABQxwBPxwBOxwBXywBdzQBgzgBizwBfzQBbzAB11gCE3ACK3gCM3wCL3gCL3wCF3AB41wBn0QCH3QCO4ABr0gBRyABp0QBy1QBu1ACN3wB92QB/2gBUyQCN4ABkzwB62ABZzACC2wBl0ACO3wCB2wCP4ASW4hKd5COo5zuw6U6562G+7W3B7nTE73u261ql5jWT4Q2R4QiZ4xqh5Syr6EKy6lO77GbD7nif5CbG74DZ9Krp+Mzy++H4/e/9/vr+/v3////m+MjX9KXQ8pbh97zu+tn2/Or7/vft+tbf9rfP8ZLb9a+j5TDq+c+b4x6t6Efw+97J8IWX4hb6/fPT8pvN8Y7j98H0/ObV86Lr+dNXywB01QCK3gBs0wCO4ACF3QD5+fnt7e3b29vKysq4uLi1tbX7+/v19fXl5eXPz8/Dw8OysrLV1dXe3t6CgoJmZmZVVVVNTU1LS0tKSkpQUFCGhobi4uLx8fGZmZlzc3NdXV2dnZ2mpqZaWlpISEhJSUmQkJCsrKxtbW2vr6/p6elqampjY2P4+Ph9fX39/f2hoaG+vr6pqamUlJSKior39/d4eHj+/v+jo6OM4ACR3wCW3gCe2wCh2gCm2QCr2ACb3ACz1gDA0gDVzQDkyQDsxwDyxAD3xAD6wwDdywDH0AD/wQD+wQD/wgD/xAT/xwr/yg//zhf/1yj/3TT/40D/5kX/4j3/50dm0ADNzwDXxwD+vgC+nQD2jAD3kwD5oAD7qgD8swD9ugD4mAC6mAD2fgDzfwD1hQD0gACunQCpoABNyQCXqAD1fwB9tADxgQCMrQBsuwDjhwBWxQDPkABawwDtggDHkwDaiwBivwBzuACgpADsLsZ8AAAA3HRSTlMADSdCbY+wy9zs9/z//5RJLV3A4fD/OoPnBXejU7bzCAEynhZmHdnT6f+q/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+jn6ujr6v/////////////////////////////////////////////////////////////////////////////////////////////////////////////pSKqL7gAAG6xJREFUeAHs1kVi7TAMQFGFwVZYYU65+1/fZ5w12PZZZ27QHQnegDHGGGOMMcYYY4wxxjTdMC3bcT1fCImfjBTC91zHDsxQ1+B6WhRbSZoJIvzMJJHI0sSKI+3SenmRlILwZpAokyK/qGEV1UlGeHMoS+qogrNpYVMS3igqm1A7N1/b9YQ3jPquPS/hEHa+xBtHfhcOcIZxajKJCpDZPI1wuKVOCRVBaa3Bsca8E6gQ0U1wJM1MCZVC6d0Ah7mffVSOHyxwkCkhVBB1ERwifCBUEj0asN/YlqistN3fL35ChZXtuLefh0p7amGX9gkVV4awg5Gi6p7dHDabHpFJR4eN7hNChrJbYJMhIGTfCKuCLUwf2Q99DBvkKbJfHiJYTesI2S/0osFKoynwD+bfwUqRi/9gjzqsUs2E/2BkjbCG4eF/WJnDCoMt8T+M5jXLYNivvP2nTxOD6HX1d72v1NqFlupIGATgdSXrdd2dMxEiyJAiAw0JtvP+j7N2jT0/gfyRc3vqATjVHyRt3OrsBwg4rud7rmMvoagbDBR11T/BL//QFQqjOBkmcRT2LRUUdUfD8eTS09V987TyGlA1BcOZpnybdJbBer9sVrNu73ZVwC9+1xTqX434PsO57YLIFkO+jeFw5mjqvn5Z9RQBmkZ+SvOhkhGC9vkd1E0CTdsff626C1Y1WtKQUtB+P9JwlUOzI642jTz9XlMpGPIghsNFBsv9DmKmmrK/V9vP3YP+B6gXtMKvkD/B5s/wY9UT7I9I6gXt8CM5XCu69u4/aXkOhhOx0Ava41dwo+n6+nmVq+AfFaW2KckbIQhnNqahSBIqqj76sgLgbShazUgLBRV+5AK96p/yVeNXoJhCjguOFw4s8xsd91NNI71n51+CL18raoUpywRnDm6EHxNPUfTb83cjt75X9JoaWimo8CNnaHUl+OsPil6XZKngyBpBOFdJuZ9qHn70c5tzCPIdLRVU+DF2q9f88fzt3DMFYJjQfkE4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" alt="Duolingo logo">
+          <h3>Duolingo</h3>
+          <p>The streaks and small wins aren't decoration — they're designed to get you to your first "I can actually do this" moment, before motivation fades.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 7: Closing -->
+  <section class="slide dark" data-index="7">
+    <div class="content">
+      <div class="ttv-visual">
+        <div class="ttv-track"></div>
+        <div class="ttv-fill" id="ttvFill"></div>
+        <div class="ttv-point start"><span>Sign up</span><span class="dot"></span></div>
+        <div class="ttv-point end" id="ttvEnd"><span>Value</span><span class="dot"></span></div>
+      </div>
+      <h1 class="ttv-label">time-to-value</h1>
+    </div>
+  </section>
+
+</div>
+
+<div class="nav">
+  <button class="nav-btn" id="prevBtn" aria-label="Previous slide">←</button>
+  <span class="nav-count"><span id="slideNum">1</span> / <span id="slideTotal">8</span></span>
+  <button class="nav-btn" id="nextBtn" aria-label="Next slide">→</button>
+</div>
+
+<!-- Firebase (compat build) -->
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
+<!-- QR code generator -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<script>
+  /* ---------------- Slide navigation ---------------- */
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let current = 0;
+  const slideNumEl = document.getElementById('slideNum');
+  const slideTotalEl = document.getElementById('slideTotal');
+  slideTotalEl.textContent = slides.length;
+
+  function goTo(i) {
+    if (i < 0 || i >= slides.length) return;
+    slides[current].classList.remove('active');
+    current = i;
+    slides[current].classList.add('active');
+    slideNumEl.textContent = current + 1;
+    document.body.classList.toggle('dark-nav', slides[current].classList.contains('dark'));
+    document.getElementById('prevBtn').disabled = current === 0;
+    document.getElementById('nextBtn').disabled = current === slides.length - 1;
+    if (current === 2) runRevealAnimation();
+    if (current === 7) runClosingAnimation();
+  }
+
+  document.getElementById('prevBtn').addEventListener('click', () => goTo(current - 1));
+  document.getElementById('nextBtn').addEventListener('click', () => goTo(current + 1));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') goTo(current + 1);
+    if (e.key === 'ArrowLeft') goTo(current - 1);
+  });
+  document.getElementById('prevBtn').disabled = true;
+
+  /* ---------------- Reveal count-up (runs once) ---------------- */
+  let revealed = false;
+  function animateNumber(el, to, decimals, duration) {
+    const start = performance.now();
+    function tick(now) {
+      const p = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = (to * eased).toFixed(decimals) + '%';
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+  function runRevealAnimation() {
+    if (revealed) return;
+    revealed = true;
+    animateNumber(document.getElementById('stat1'), 37.5, 1, 1400);
+    setTimeout(() => animateNumber(document.getElementById('stat2'), 98, 0, 1100), 500);
+  }
+
+  /* ---------------- Closing visual: distance compresses each time the slide is entered ---------------- */
+  function runClosingAnimation() {
+    const fill = document.getElementById('ttvFill');
+    const end = document.getElementById('ttvEnd');
+    fill.classList.remove('compressed');
+    end.classList.remove('compressed');
+    void fill.offsetWidth; // force reflow so the transition replays
+    requestAnimationFrame(() => {
+      fill.classList.add('compressed');
+      end.classList.add('compressed');
+    });
+  }
+
+  /* ---------------- Live poll UI (renders independently of Firebase) ---------------- */
+  const OPTIONS = [
+    { key: "opt1", letter: "A", label: "Under 25%" },
+    { key: "opt2", letter: "B", label: "25–50%" },
+    { key: "opt3", letter: "C", label: "50–75%" },
+    { key: "opt4", letter: "D", label: "Over 75%" }
+  ];
+
+  const optionsEl = document.getElementById('options');
+  const resultsEl = document.getElementById('results');
+  const VOTED_KEY = "votedLiveInterview";
+  let votesRef = null; // set later if Firebase connects successfully
+
+  OPTIONS.forEach(o => {
+    const btn = document.createElement('button');
+    btn.className = 'opt';
+    btn.innerHTML = `<span class="letter">${o.letter}</span><span>${o.label}</span>`;
+    btn.addEventListener('click', () => castVote(o.key));
+    optionsEl.appendChild(btn);
+  });
+
+  OPTIONS.forEach(o => {
+    const row = document.createElement('div');
+    row.className = 'result-row';
+    row.innerHTML = `
+      <div class="result-label">${o.letter}</div>
+      <div class="bar-track"><div class="bar-fill" id="bar-${o.key}"></div></div>
+      <div class="result-count" id="count-${o.key}">0</div>
+    `;
+    resultsEl.appendChild(row);
+  });
+
+  function hasVoted() {
+    try { return localStorage.getItem(VOTED_KEY) === "1"; } catch (e) { return false; }
+  }
+  function markVoted() {
+    try { localStorage.setItem(VOTED_KEY, "1"); } catch (e) {}
+  }
+  if (hasVoted()) {
+    optionsEl.querySelectorAll('button').forEach(b => b.disabled = true);
+  }
+
+  function castVote(key) {
+    if (hasVoted()) return;
+    if (!votesRef) return;
+    votesRef.child(key).transaction(current => (current || 0) + 1).then(() => {
+      markVoted();
+      optionsEl.querySelectorAll('button').forEach(b => b.disabled = true);
+    });
+  }
+
+  try {
+    new QRCode(document.getElementById('qrcode'), {
+      text: window.location.href,
+      width: 128,
+      height: 128,
+      colorDark: "#0B1F33",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  } catch (e) {
+    console.error('QR code failed to render:', e);
+  }
+
+  /* ---------------- Firebase (isolated — a failure here never breaks the UI above) ---------------- */
+  try {
+    const firebaseConfig = {
+      apiKey: "AIzaSyBoriZJiKkC3L2Nz8QmRy9FvXcnyozE2K0",
+      authDomain: "planet-interview.firebaseapp.com",
+      databaseURL: "https://planet-interview-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "planet-interview",
+      storageBucket: "planet-interview.firebasestorage.app",
+      messagingSenderId: "675362933693",
+      appId: "1:675362933693:web:f09e4d8c428a48d6f260d4"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    votesRef = db.ref("polls/liveInterview/votes");
+
+    votesRef.on('value', (snapshot) => {
+      const val = snapshot.val() || {};
+      const total = OPTIONS.reduce((sum, o) => sum + (val[o.key] || 0), 0);
+      OPTIONS.forEach(o => {
+        const count = val[o.key] || 0;
+        const pct = total > 0 ? (count / total) * 100 : 0;
+        document.getElementById(`bar-${o.key}`).style.width = pct + '%';
+        document.getElementById(`count-${o.key}`).textContent = count;
+      });
+    }, (err) => {
+      console.error('Firebase read failed:', err);
+    });
+  } catch (e) {
+    console.error('Firebase failed to initialize — poll will still show but without live sync:', e);
+  }
+</script>
+</body>
+</html>
